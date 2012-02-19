@@ -1,0 +1,6 @@
+#!/bin/sh
+
+scalac Main.scala 
+jar cvfm MainIn.jar main.mf *.class
+java -Xms512m -Xmx512m -jar proguard.jar @main.pro
+rm MainIn.jar *.class

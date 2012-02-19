@@ -188,7 +188,7 @@ class Game {
   }
 }
 
-object Main extends PApplet {
+class Main extends PApplet {
   applet =>
     
   val game = new Game
@@ -221,8 +221,6 @@ object Main extends PApplet {
   override def setup() {
     size(300, 400, JAVA2D)
 
-    if (applet.frame != null) frame.setTitle( "ダイススレイヤー")
-    
     textFont(createFont("", 40))
     
     smooth()
@@ -320,6 +318,13 @@ object Main extends PApplet {
       game.setup()
       redraw()
     }
+  }  
+}
+
+object Application extends Main {
+  override def setup() {
+    super.setup()
+    frame.setTitle( "ダイススレイヤー")
   }
   
   def main(args: Array[String]) = runSketch()

@@ -1,4 +1,6 @@
 /project/target/*
 /target/*
+/export/*.jar
+/export/Main.scala
 
 .DS_Store
