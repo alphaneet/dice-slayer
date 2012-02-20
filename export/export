@@ -1,5 +1,6 @@
 #!/bin/sh
 
+cp ../src/main/scala/Main.scala .
 scalac Main.scala 
 jar cvfm MainIn.jar main.mf *.class
 java -Xms512m -Xmx512m -jar proguard.jar @main.pro

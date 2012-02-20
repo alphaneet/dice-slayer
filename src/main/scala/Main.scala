@@ -139,6 +139,7 @@ class Game {
   // うーむ。。。ふらぐェ。。。
   var isFinished = false
   
+  var highScore = 0
   var score = 0
   
   val talon = new Talon
@@ -180,6 +181,7 @@ class Game {
       board.sendTo(talon, dices)
       score += dices.size * dices.size
       if (board.dices.isEmpty) score += 20
+      if (score > highScore) highScore = score       
     }
   }
 
@@ -238,7 +240,7 @@ class Main extends PApplet {
   }
 
   def boardX(index: Int) = alignX(index, size = boardSize, margin = 80)
-  def boardY(index: Int) = 80 + (index / 3) * 60
+  def boardY(index: Int) = 90 + (index / 3) * 60
   val boardSize = 50
   
   def containsBoardDicesWithMouse: Option[Dice] = {
@@ -273,43 +275,49 @@ class Main extends PApplet {
       val s = 64
       val x = alignX(index = index, size = s, margin = s - 2)
       
-      val y = 280
+      val y = 290
       image(diceImages(dice.number), x, y, s, s)
     }
 
     fill(0)
     textSize(15)
     textAlign(CORNER)
-    text("スコア：" + game.score, 10, 20)
-    text("残サイコロ x " + game.talon.dices.size, 10, 40)
-    text("リトライ: push R key ", 10, 380)
+    text("ハイスコア：" + game.highScore, 10, 20)    
+    text("スコア：" + game.score, 10, 40)
+    text("残サイコロ x " + game.talon.dices.size, 10, 60)
+    text("リトライ: R キー", 10, 390)
 
     if (game.isFinished) {
       noStroke()      
       fill(255, 255, 255, 200)
       rectMode(CENTER)
-      rect(width >> 1, (height >> 1) - 10, width, 60)      
+      rect(width >> 1, (height >> 1) - 10, width, 80)
 
-      textSize(35)
-      textAlign(CENTER)      
+      textSize(20)
+      textAlign(CENTER)
       fill(255, 64, 64)
-      text("ゲームオーバー", width >> 1, height >> 1)      
+      text("ゲームオーバー", width >> 1, (height >> 1) - 15)
+      text("クリックでリトライ", width >> 1, (height >> 1) + 15)
     }
   }
 
   override def mousePressed() {
-    if (game.isFinished) return
-    
-    containsBoardDicesWithMouse foreach {
-      dice =>
-        
-      game call dice
-      
-      game.deal()
+    if (game.isFinished) {
+      game.setup()
 
-      game.checkFinish()
-       
       redraw()
+    } else {          
+      containsBoardDicesWithMouse foreach {
+        dice =>
+          
+        game call dice
+        
+        game.deal()
+
+        game.checkFinish()
+        
+        redraw()
+      }
     }
   }
 
@@ -324,7 +332,7 @@ class Main extends PApplet {
 object Application extends Main {
   override def setup() {
     super.setup()
-    frame.setTitle( "ダイススレイヤー")
+    frame.setTitle("ダイススレイヤー")
   }
   
   def main(args: Array[String]) = runSketch()
