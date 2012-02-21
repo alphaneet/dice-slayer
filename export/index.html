@@ -31,7 +31,7 @@
 
   <body>
     <div id="content">
-      <div id="Main_container">
+      <div id="Applet_container">
 
 	<!-- This version plays nicer with older browsers, 
 	     but requires JavaScript to be enabled. 
@@ -43,8 +43,8 @@
 	  /* <![CDATA[ */
 
 	  var attributes = { 
-            code: 'Main.class',
-            archive: 'Main.jar',
+            code: 'Applet.class',
+            archive: 'Applet.jar',
             width: 300, 
             height: 400,
           };
@@ -60,13 +60,13 @@
         
 	<noscript> <div>
 	  <!--[if !IE]> -->
-	  <object classid="java:Main.class" 
+	  <object classid="java:Applet.class" 
             	  type="application/x-java-applet"
-            	  archive="Main.jar"
+            	  archive="Applet.jar"
             	  width="300" height="400"
             	  standby="Loading Processing software..." >
             
-	    <param name="archive" value="Main.jar" />
+	    <param name="archive" value="Applet.jar" />
 	    
 	    <param name="mayscript" value="true" />
 	    <param name="scriptable" value="true" />
@@ -85,8 +85,8 @@
 		    width="300" height="400"
 		    standby="Loading Processing software..."  >
 	      
-	      <param name="code" value="Main" />
-	      <param name="archive" value="Main.jar" />
+	      <param name="code" value="Applet" />
+	      <param name="archive" value="Applet.jar" />
 	      
 	      <param name="mayscript" value="true" />
 	      <param name="scriptable" value="true" />
@@ -119,20 +119,21 @@
 	
       </p>
 
+
       <p>
-	Game design by: <a href="http://spa-game.com/?p=780">スパ帝国</a> 
+        Game design by: <a href="http://spa-game.com/?p=780" target="_blank">スパ帝国</a> 
       </p>
 
       <p>
-	Contact me: <a href="https://twitter.com/#!/alphaneet">twitter</a> 
+        Clontact me: <a href="https://twitter.com/#!/alphaneet" target="_blank">twitter</a> 
       </p>
       
       <p>
-	Source code: <a href="https://github.com/alphaneet/dice-slayer">github</a> 
+        Source code: <a href="https://github.com/alphaneet/dice-slayer" target="_blank">github</a>
       </p>
       
       <p>
-	Built with <a href="http://processing.org" title="Processing.org">Processing</a> and <a href="http://www.scala-lang.org/" title="scala-lang.org">Scala</a>
+        Built with <a href="http://processing.org" title="Processing.org" target="_blank">Processing</a> and <a href="http://www.scala-lang.org/" title="scala-lang.org" target="_blank">Scala</a>
       </p>
     </div>
   </body>

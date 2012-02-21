@@ -1,7 +1,8 @@
 #!/bin/sh
 
-cp ../src/main/scala/Main.scala .
-scalac Main.scala 
-jar cvfm MainIn.jar main.mf *.class
-java -Xms512m -Xmx512m -jar proguard.jar @main.pro
-rm MainIn.jar *.class
+cp ../src/main/scala/gui.scala .
+cp ../src/main/scala/models.scala .
+scalac *.scala
+jar cvfm AppletIn.jar applet.mf *.class
+java -Xms512m -Xmx512m -jar proguard.jar @applet.pro
+rm AppletIn.jar *.class *.scala
