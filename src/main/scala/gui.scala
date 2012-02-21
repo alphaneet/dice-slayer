@@ -2,10 +2,13 @@ import processing.core._
 import processing.core.PConstants._
 
 class Applet extends PApplet {
-  applet =>
-    
+  implicit val applet = this
+
+  implicit def pair2PVector(p: Pair[Int, Int]) = new PVector(p._1, p._2)
+  
   val game = new Game
 
+  val backgroundImage = loadImage("background.png")
   val diceImages: List[PGraphics] = (1 to CubeDice.MaxNumber) map {
     i =>
     val size = 64
@@ -29,8 +32,119 @@ class Applet extends PApplet {
     g.endDraw()
     
     g
-  } toList
+  } toList  
   
+  //
+  // TK: DiceSprite を ArrayBuffer にして可変で作る！！
+  //
+  case class DiceSprite(dice: Dice) extends java.awt.Rectangle {
+    // こんなものは消す！！！！！
+    def init() {
+      isDisplay = false
+      isActive  = false
+      arriveAction = None      
+    }
+    
+    var isDisplay = false
+
+    var isActive = false
+    var speed  = 0.0f
+
+    var arriveAction: Option[() => Unit] = None
+    def arriveAction(action: => Unit) {
+      arriveAction = Option(action _)
+    }
+
+    private var vec = new PVector()    
+    private var _target = new PVector()
+    def target = _target
+    def target_=(target: PVector) {
+      _target = target      
+      isActive = true
+      
+      vec = target.get()
+      vec.sub(new PVector(x, y))
+      vec.normalize()
+    }
+
+    override def contains(x: Int, y: Int) = {
+      super.contains(x + (width >> 1), y + (height >> 1))
+    }
+  
+    def draw() = if (isDisplay) image(diceImages(dice.number), x, y, width, height)
+    
+    def move() {
+      if (!isActive) return
+      
+      if (target.dist(new PVector(x, y)) <= speed) {
+        isActive = false        
+        x = target.x.toInt
+        y = target.y.toInt
+
+        arriveAction foreach { _() }
+        arriveAction = None
+      } else {
+        x += (vec.x * speed).toInt
+        y += (vec.y * speed).toInt
+      }
+    }
+  }
+  class DiceSpriteListWrapper(xs: List[DiceSprite]) {
+    def apply(dice: Dice) = xs find { _.dice == dice }
+    def filterBy(pack: Pack) = xs filter { pack.dices contains _.dice }
+  }
+  implicit def DiceSpriteList2Wrapper(xs: List[DiceSprite]) = {
+    new DiceSpriteListWrapper(xs)
+  }
+
+  def containsBoardSpriteWithMouse: Option[DiceSprite] = diceSprites find {
+    sprite =>
+    sprite.dice.isBoard && sprite.contains(mouseX, mouseY)
+  }
+
+  //
+  // TK: DiceSprite を ArrayBuffer にして可変で作る！！
+  // 
+  val diceSprites: List[DiceSprite] = game.dices.map { DiceSprite(_) }
+
+  def startGame() {
+    game.setup()
+
+    diceSprites foreach { _.init() }
+    
+    deal()
+  }
+  
+  def deal() {
+    def getX(index: Int) = alignX(index = index, margin = 80)
+    def getY(index: Int) = 100 + (index / 3) * 60
+    def getIndex(dice: Dice) = game.board.dices.indexOf(dice)
+    
+    game.deal.foreach {
+      case dice =>
+      diceSprites(dice) foreach {
+        s =>
+        s.init()
+        
+        val index = getIndex(dice)
+
+        s.x = getX(index) + (width + 30)
+        s.y = getY(index)
+                
+        s.speed  = 30.0f
+        s.width  = 50
+        s.height = 50
+        s.isDisplay = true
+      }      
+    }
+
+    diceSprites.filter(_.dice.isBoard) foreach {
+      s =>
+      val index = getIndex(s.dice)
+      s.target = (getX(index), getY(index))
+    }
+  }
+    
   override def setup() {
     size(300, 400, JAVA2D)
 
@@ -38,59 +152,26 @@ class Applet extends PApplet {
     
     smooth()
     
-    noLoop()
-//    frameRate(24)
+    frameRate(24)
 
-    game.setup()
+    startGame()
   }
 
-  def alignX(index: Int, size: Int, margin: Int): Int = {
-    val center = (width >> 1) - (size >> 1)
-    val diff   = ((index % 3) - 1) * margin
-    center + diff
+  def alignX(index: Int, margin: Int): Int = {
+    (width >> 1) + ((index % 3) - 1) * margin
   }
-
-  def boardX(index: Int) = alignX(index, size = boardSize, margin = 80)
-  def boardY(index: Int) = 90 + (index / 3) * 60
-  val boardSize = 50
-  
-  def containsBoardDicesWithMouse: Option[Dice] = {
-    game.board.dices.zipWithIndex.find {
-      case (dice, index) =>
-      val x = boardX(index)
-      val y = boardY(index)
-      val s = boardSize
       
-      (new java.awt.Rectangle(x, y, s, s)).contains(mouseX, mouseY)
-    } map {
-      case (dice, _) =>
-      dice
-    }
-  }
-    
   override def draw() {    
-    background(255)
+    background(backgroundImage)
 
-    game.board.dices.zipWithIndex foreach {
-      case (dice, index) =>              
-        
-      val x = boardX(index)
-      val y = boardY(index)
-      
-      image(diceImages(dice.number), x, y, boardSize, boardSize)
-    }
-    
-    game.stock.dices.zipWithIndex foreach {
-      case (dice, index) =>
-
-      val s = 64
-      val x = alignX(index = index, size = s, margin = s - 2)
-      
-      val y = 290
-      image(diceImages(dice.number), x, y, s, s)
+    imageMode(CENTER)
+    diceSprites foreach {
+      sprite =>        
+      sprite.draw()
+      sprite.move()
     }
 
-    fill(0)
+    fill(255)
     textSize(15)
     textAlign(CORNER)
     text("ハイスコア：" + game.highScore, 10, 20)    
@@ -100,43 +181,63 @@ class Applet extends PApplet {
 
     if (game.isFinished) {
       noStroke()      
-      fill(255, 255, 255, 200)
+      fill(0, 0, 0, 200)
       rectMode(CENTER)
       rect(width >> 1, (height >> 1) - 10, width, 80)
 
       textSize(20)
       textAlign(CENTER)
-      fill(255, 64, 64)
+      fill(255)
       text("ゲームオーバー", width >> 1, (height >> 1) - 15)
       text("クリックでリトライ", width >> 1, (height >> 1) + 15)
+    }
+
+    containsBoardSpriteWithMouse foreach {
+      s =>
+      rectMode(CENTER)
+      fill(255, 221, 75, 80)
+      rect(s.x, s.y, s.width - 2, s.height - 2)
     }
   }
 
   override def mousePressed() {
     if (game.isFinished) {
-      game.setup()
+      startGame()
+    } else {
+      containsBoardSpriteWithMouse foreach {
+        clickedSprite =>
 
-      redraw()
-    } else {          
-      containsBoardDicesWithMouse foreach {
-        dice =>
-          
-        game call dice
+        def dropDice(dice: Dice) {
+          diceSprites(dice) foreach {
+            sprite =>
+            sprite.arriveAction { sprite.isDisplay = false }
+            sprite.target = (-sprite.width, sprite.y)
+          }
+        }
         
-        game.deal()
+        (game call clickedSprite.dice) foreach { dropDice }
+        
+        clickedSprite.width  = 64
+        clickedSprite.height = 64
+
+        diceSprites.filter(_.dice.isStock) foreach {
+          sprite =>
+          val index = game.stock.dices.indexOf(sprite.dice)
+          val x = alignX(index = index, margin = sprite.width - 2)
+          sprite.target = (x, 340)
+        }
+
+        game.drop foreach { dropDice }
+
+        deal()
 
         game.checkFinish()
-        
-        redraw()
       }
     }
   }
 
   override def keyPressed() {
-    if (key == 'r' || key == 'R') {
-      game.setup()
-      redraw()
-    }
+    if (key == 'r' || key == 'R') startGame()
   }  
 }
 

@@ -3,32 +3,55 @@ import org.scalatest.matchers.ShouldMatchers
 
 class DiceSuite extends FunSuite with ShouldMatchers {
   test("#number の値は 0 <-> (maxNumber - 1) の間の値である") {
-    val dice = new Dice { val id = 1; val maxNumber = 6 }
+    val dice = new Dice {
+      val id = 1
+      val maxNumber = 6
+    }
     
     dice.number = 0 
     dice.number = 5 
-    evaluating { dice.number = 6 } should produce [OutSideDiceNumberException]
+    evaluating { dice.number = -1 } should produce [OutSideDiceNumberException]
+    evaluating { dice.number =  6 } should produce [OutSideDiceNumberException]
+  }
+
+  test("#pack を変更する時は以前の Pack#dices を取り除き、新しい Pack#dices に足される")
+  {
+    val a = new Talon
+    val b = new Board
+    val dice = new CubeDice(1)
+    
+    dice.pack = Option(a)
+    
+    a.dices.exists(_ == dice) should be (true)
+    b.dices.isEmpty should be (true)
+
+    dice.pack = Option(b)
+
+    a.dices.isEmpty should be (true)
+    b.dices.exists(_ == dice) should be (true)
   }  
 }
 
 class PackSuite extends FunSuite with ShouldMatchers {
   test("#numbers は dices の number を List にしたもの") {
-    val pack = new Pack {
-      List(0, 2, 4, 5).zipWithIndex foreach {
-        case (num, id) =>
-        dices += new CubeDice(id) { number = num }
-      }
+    val pack = new Talon
+    
+    List(0, 2, 4, 5).zipWithIndex foreach {
+      case (num, id) =>
+      pack.dices += new CubeDice(id) { number = num }
     }
 
     pack.numbers should be (List(0, 2, 4, 5))
   }
-  
 }
+       
 
 class BoardSuite extends FunSuite with ShouldMatchers {
   test("#drop は引数と同じ Dice#number の dice のリストを返す") {
     trait Fixture {
-      def create(id: Int, num: Int): Dice = new CubeDice(id) { number = num }
+      def create(id: Int, num: Int): Dice = new CubeDice(id) {
+        number = num
+      }
 
       val a = create(1, 0)
       val b = create(2, 0)
@@ -93,5 +116,25 @@ class StockSuite extends FunSuite with ShouldMatchers {
     
     create(0, 1, 2).success should be (Option(List(3)))
     create(3, 4, 5).success should be (Option(List(2)))
+  }
+}
+
+class GameSuite extends FunSuite with ShouldMatchers {
+  test("#setup で全ての dice は talon に移される") {
+    val game = new Game
+    game.setup()
+    
+    game.talon.dices.size should be (game.dices.size)
+    game.dices.filterNot { _.pack == Option(game.talon) }.size should be (0)
+    
+    game.deal()
+
+    game.talon.dices.size should be (game.dices.size - 3)
+    game.dices.filterNot { _.pack == Option(game.talon) }.size should be (3)
+
+    game.setup()
+
+    game.talon.dices.size should be (game.dices.size)
+    game.dices.filterNot { _.pack == Option(game.talon) }.size should be (0)  
   }
 }

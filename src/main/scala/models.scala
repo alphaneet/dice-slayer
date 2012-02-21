@@ -7,6 +7,22 @@ trait Dice {
   val id: Int
   val maxNumber: Int
   
+  private var _pack: Option[Pack] = None
+  def pack = _pack
+  def pack_=(pack: Option[Pack]) {
+    val dice = this
+    
+    _pack foreach { _.dices -= dice }
+
+    _pack = pack
+    
+    _pack foreach { _.dices += dice }
+  }
+
+  def isTalon = pack.map(_.isInstanceOf[Talon]).getOrElse(false)
+  def isBoard = pack.map(_.isInstanceOf[Board]).getOrElse(false)
+  def isStock = pack.map(_.isInstanceOf[Stock]).getOrElse(false)  
+  
   private var _number = 0
   def number = _number
   def number_=(n: Int)  {
@@ -34,14 +50,14 @@ case class CubeDice(id: Int) extends Dice {
 
 // Deck だと Dice とかぶって紛らわしいので Pack にした。
 // どうやらイギリスでは Deck を Pack というらしい。
-trait Pack {
-  val dices = scala.collection.mutable.LinkedHashSet[Dice]()
+sealed trait Pack {
+  val dices = scala.collection.mutable.ArrayBuffer[Dice]()
   
-  def send(that: Pack)(choice: => Dice) {    
-    Exception.catching(classOf[NoSuchElementException]).opt(choice) foreach {
+  def send(that: Pack)(choice: => Dice): Option[Dice] = {    
+    Exception.catching(classOf[NoSuchElementException]).opt(choice) map {
       dice =>
-      this.dices -= dice    
-      that.dices += dice
+      dice.pack = Option(that)
+      dice
     }
   }
 
@@ -51,22 +67,22 @@ trait Pack {
 class Talon extends Pack {
   talon =>
   
-  def sendTo(board: Board) {
+  def sendTo(board: Board): List[Dice] = {
     val size = if (board.dices.isEmpty) 3 else 2
-    (1 to size) foreach {
+    List.range(0, size) map {
       _ =>
       send(board) {
         talon.dices.head.shake()
       }
-    }
+    } flatten
   }
 }
 
 class Board extends Pack {
   board =>
 
-  def sendTo(board: Stock, choiceDice: Dice) {
-    dices.find(_ == choiceDice) foreach {
+  def sendTo(board: Stock, choiceDice: Dice): Option[Dice] = {
+    dices.find(_ == choiceDice) flatMap {
       send(board)(_)
     }
   }
@@ -86,9 +102,11 @@ class Board extends Pack {
 class Stock extends Pack {
   stock =>
 
-  def sendTo(talon: Talon) {
+  def sendTo(talon: Talon): Option[Dice] = {
     if (stock.dices.size > 3) {
       send(talon)(stock.dices.head)
+    } else {
+      None
     }
   }
 
@@ -141,44 +159,41 @@ class Game {
   val talon = new Talon
   val board = new Board
   val stock = new Stock
+  val dices: List[Dice] = (1 to 12) map { CubeDice(_) } toList
   def packs: List[Pack] = List(talon, board, stock)
 
   def setup() {
     isFinished = false
+    
     score = 0
     
-    packs foreach {
-      _.dices.clear
-    }
+    packs foreach { _.dices.clear }
     
-    (1 to 12) foreach {
-      talon.dices += CubeDice(_)
-    }
-
-    talon sendTo board
+    dices foreach { _.pack = Option(talon) }
   }
 
-  def deal() {
-    talon sendTo board    
-  }
+  def deal(): List[Dice] = talon sendTo board
   
-  def call(dice: Dice) {
+  def call(dice: Dice): Option[Dice] = {
     // こう出来たらかっちょいいと思いました（きり
     //board send dice to stock
     board.sendTo(stock, dice)
 
     stock sendTo talon
+  }
 
+  def drop(): List[Dice] = {
     // この文面だけでコードの方みないで何やってるか分かるだろうか？
     // 「ストックが成功ならボードのドロップに変換して回す（きり」
     // 英語力 と scala力 くだしあ；ω；    
-    stock.success.map(board.drop) foreach {
+    stock.success.map(board.drop) map {
       dices =>
       board.sendTo(talon, dices)
       score += dices.size * dices.size
       if (board.dices.isEmpty) score += 20
-      if (score > highScore) highScore = score       
-    }
+      if (score > highScore) highScore = score
+      dices
+    } getOrElse(List.empty[Dice])
   }
 
   def checkFinish() {

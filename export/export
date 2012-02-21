@@ -3,6 +3,6 @@
 cp ../src/main/scala/gui.scala .
 cp ../src/main/scala/models.scala .
 scalac *.scala
-jar cvfm AppletIn.jar applet.mf *.class
+jar cvfm AppletIn.jar applet.mf *.class data
 java -Xms512m -Xmx512m -jar proguard.jar @applet.pro
 rm AppletIn.jar *.class *.scala
