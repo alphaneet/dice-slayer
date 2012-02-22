@@ -159,7 +159,7 @@ class Game {
   val talon = new Talon
   val board = new Board
   val stock = new Stock
-  val dices: List[Dice] = (1 to 12) map { CubeDice(_) } toList
+  val dices: List[Dice] = (1 to 13) map { CubeDice(_) } toList
   def packs: List[Pack] = List(talon, board, stock)
 
   def setup() {
